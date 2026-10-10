@@ -50,7 +50,7 @@ jobs:
           d=proofgate-${{ github.ref_name }}-${{ matrix.name }}
           mkdir "$d" && cp core/target/release/proofgate bin/proofgate-gateway LICENSE README.md "$d"/
           tar -czf "$d.tar.gz" "$d"
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: proofgate-*.tar.gz
       - uses: actions/upload-artifact@v4
