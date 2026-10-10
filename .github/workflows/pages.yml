@@ -33,7 +33,7 @@ jobs:
           node-version: 22
       - run: ./scripts/build-site.sh
       - run: node scripts/wasm-smoke.mjs
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
