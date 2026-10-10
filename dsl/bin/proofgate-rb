@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "proofgate"
+
+USAGE = "usage: proofgate-rb compile <policy.rb> [-o policy.json]".freeze
+
+cmd, path, flag, out = ARGV
+abort USAGE unless cmd == "compile" && path
+
+begin
+  json = Proofgate.compile_file(path)
+rescue Proofgate::Error, SystemCallError, SyntaxError => e
+  abort "proofgate-rb: #{e.message}"
+end
+
+if flag == "-o" && out
+  File.write(out, json)
+else
+  puts json
+end

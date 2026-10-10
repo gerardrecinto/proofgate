@@ -18,7 +18,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-go@v5
         with:
-          go-version-file: gateway/go.mod
+          go-version: stable
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
@@ -43,7 +43,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-go@v5
         with:
-          go-version-file: gateway/go.mod
+          go-version: stable
       - run: make build
       - name: Package
         run: |

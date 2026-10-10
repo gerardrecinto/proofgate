@@ -44,7 +44,7 @@ jobs:
           workspaces: core
       - uses: actions/setup-go@v5
         with:
-          go-version-file: gateway/go.mod
+          go-version: stable
       - run: cargo build --release
         working-directory: core
       - run: gofmt -l . | tee /dev/stderr | (! read)

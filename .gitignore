@@ -1,5 +1,5 @@
 core/target/
-bin/
+/bin/
 _site/
 *.gem
 .DS_Store
