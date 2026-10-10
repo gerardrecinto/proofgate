@@ -20,17 +20,23 @@ jobs:
       security-events: write
     strategy:
       matrix:
-        language: [go, ruby, actions]
+        include:
+          - { language: go, mode: manual }
+          - { language: ruby, mode: none }
+          - { language: actions, mode: none }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         if: matrix.language == 'go'
         with:
-          go-version-file: gateway/go.mod
+          go-version: stable
       - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: none
+          build-mode: ${{ matrix.mode }}
+      - if: matrix.mode == 'manual'
+        run: go build ./...
+        working-directory: gateway
       - uses: github/codeql-action/analyze@v3
         with:
           category: /language:${{ matrix.language }}
