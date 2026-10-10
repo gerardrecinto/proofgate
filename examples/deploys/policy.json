@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "name": "deploys",
+  "dimensions": [
+    {
+      "name": "env",
+      "values": [
+        "dev",
+        "staging",
+        "prod"
+      ]
+    },
+    {
+      "name": "role",
+      "values": [
+        "engineer",
+        "sre",
+        "contractor"
+      ]
+    },
+    {
+      "name": "action",
+      "values": [
+        "read",
+        "deploy",
+        "rollback",
+        "delete"
+      ]
+    },
+    {
+      "name": "approved",
+      "values": [
+        "yes",
+        "no"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "freeze_prod_delete",
+      "description": "Nobody deletes in prod",
+      "when": {
+        "env": [
+          "prod"
+        ],
+        "action": [
+          "delete"
+        ]
+      },
+      "effect": "deny"
+    },
+    {
+      "id": "sre_prod",
+      "description": "SREs run prod with approval",
+      "when": {
+        "env": [
+          "prod"
+        ],
+        "role": [
+          "sre"
+        ],
+        "approved": [
+          "yes"
+        ]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "sre_rollback",
+      "description": "SREs roll back anywhere",
+      "when": {
+        "role": [
+          "sre"
+        ],
+        "action": [
+          "rollback"
+        ]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "engineer_prod_read",
+      "description": "Engineers read prod",
+      "when": {
+        "env": [
+          "prod"
+        ],
+        "role": [
+          "engineer"
+        ],
+        "action": [
+          "read"
+        ]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "engineer_nonprod",
+      "description": "Engineers work freely outside prod",
+      "when": {
+        "env": [
+          "dev",
+          "staging"
+        ],
+        "role": [
+          "engineer"
+        ]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "contractor_dev",
+      "description": "Contractors work in dev",
+      "when": {
+        "env": [
+          "dev"
+        ],
+        "role": [
+          "contractor"
+        ]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "everyone_reads",
+      "description": "Anyone reads dev and staging",
+      "when": {
+        "env": [
+          "dev",
+          "staging"
+        ],
+        "action": [
+          "read"
+        ]
+      },
+      "effect": "allow"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "no_contractor_prod",
+      "description": "Contractors never change prod",
+      "when": {
+        "env": [
+          "prod"
+        ],
+        "role": [
+          "contractor"
+        ],
+        "action": [
+          "deploy",
+          "rollback",
+          "delete"
+        ]
+      },
+      "kind": "never_allow"
+    },
+    {
+      "id": "no_unapproved_prod",
+      "description": "Nothing is deployed or deleted in prod without approval",
+      "when": {
+        "env": [
+          "prod"
+        ],
+        "action": [
+          "deploy",
+          "delete"
+        ],
+        "approved": [
+          "no"
+        ]
+      },
+      "kind": "never_allow"
+    },
+    {
+      "id": "sre_can_roll_back",
+      "description": "SREs can always roll back",
+      "when": {
+        "role": [
+          "sre"
+        ],
+        "action": [
+          "rollback"
+        ]
+      },
+      "kind": "always_allow"
+    }
+  ]
+}

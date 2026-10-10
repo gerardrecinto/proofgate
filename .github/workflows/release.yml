@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  qa-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway/go.mod
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - run: make test
+      - name: Tag matches the crate version
+        run: |
+          v=$(sed -n 's/^version = "\(.*\)"/\1/p' core/Cargo.toml | head -1)
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but Cargo.toml says $v"; exit 1; }
+
+  build:
+    needs: qa-gate
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, name: linux-amd64 }
+          - { os: ubuntu-24.04-arm, name: linux-arm64 }
+          - { os: macos-latest, name: darwin-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gateway/go.mod
+      - run: make build
+      - name: Package
+        run: |
+          d=proofgate-${{ github.ref_name }}-${{ matrix.name }}
+          mkdir "$d" && cp core/target/release/proofgate bin/proofgate-gateway LICENSE README.md "$d"/
+          tar -czf "$d.tar.gz" "$d"
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: proofgate-*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: proofgate-*.tar.gz
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          (cd dist && sha256sum * > SHA256SUMS)
+          # notes are the changelog section for this tag
+          awk -v t="## $GITHUB_REF_NAME" '$0==t{f=1;next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notes.md
