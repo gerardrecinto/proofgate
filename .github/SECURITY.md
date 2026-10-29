@@ -24,4 +24,4 @@ Proofgate proves facts about the policy you wrote, over the dimensions you decla
 
 ## Controls on this repo
 
-CodeQL, gitleaks, `cargo audit` and `govulncheck` run on every change and daily. Dependabot raises weekly updates. Release archives carry signed build provenance and a checksum file.
+CodeQL, gitleaks, `cargo audit` and `govulncheck` run on every change. CodeQL is scheduled weekly; the other security checks run daily. Dependabot raises weekly updates. Release archives carry signed build provenance and a checksum file.
