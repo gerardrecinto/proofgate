@@ -58,7 +58,8 @@ jobs:
           PROOFGATE_BIN: ${{ github.workspace }}/core/target/release/proofgate
 
   ruby:
-    runs-on: ubuntu-latest
+    # Older supported Ruby builds are not available on ubuntu-26.04.
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -107,3 +108,9 @@ jobs:
       - run: ./scripts/build-site.sh
       - name: The WebAssembly build agrees with the CLI
         run: node scripts/wasm-smoke.mjs
+      - name: Install locked browser checks
+        run: npm ci --prefix qa --ignore-scripts
+      - name: Install Chromium
+        run: qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Real browser presets, accessibility and failure states
+        run: npm test --prefix qa

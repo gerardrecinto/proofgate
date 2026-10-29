@@ -37,7 +37,7 @@ The gateway treats a policy change as something that must come with evidence.
 1. The candidate is checked. Any failed invariant rejects it.
 2. The candidate is diffed against the active policy. If nothing is newly allowed, it activates. Narrowing never needs approval.
 3. If anything is newly allowed, an approval token is required: `HMAC-SHA256(key, old_digest | new_digest | fingerprint)`. The fingerprint is a hash of the exact list of changes. The token authorises that change and no other, so editing the policy after approval invalidates it.
-4. Activation and rejection are both appended to a hash-chained log.
+4. Activations and invariant or approval refusals are appended to a hash-chained log. Malformed input and prover failures are not logged.
 
 Without an approval key configured, widening is always refused.
 
@@ -57,7 +57,7 @@ The same Rust code compiles to WebAssembly for the playground. There is no JavaS
 - No ranges, regexes, or comparisons between attributes. Bucket them into values.
 - Only first-match with default deny. No priorities or deny-overrides.
 - Diff needs identical dimensions in both policies. Adding a value is a separate, explicit migration.
-- Many overlapping rules can fragment the partition into many cubes. It stays fast for policies with dozens of rules over a few thousand requests, which is the intended scale.
+- Many overlapping rules can fragment the partition into many cubes. The intended scope is policies with dozens of rules over a few thousand requests. No latency bound or benchmark guarantee is claimed.
 
 ## Prior art
 
