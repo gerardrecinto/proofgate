@@ -51,6 +51,9 @@ jobs:
         working-directory: gateway
       - run: go vet ./...
         working-directory: gateway
+      - name: Concurrent approvals remain bound to the active policy
+        run: go test -race -run TestConcurrentProposalsCannotReuseAnObsoleteBaseApproval -count=20 ./...
+        working-directory: gateway
       - name: Tests, including conformance against the Rust evaluator
         run: go test -race -count=1 ./...
         working-directory: gateway
