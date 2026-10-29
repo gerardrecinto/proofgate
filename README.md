@@ -4,6 +4,8 @@
 
 **Prove what a policy change does before it ships.**
 
+For engineers reviewing changes to finite access-control policies.
+
 [Live demo](https://gerardrecinto.github.io/proofgate/) · [Design](docs/DESIGN.md) · [Changelog](CHANGELOG.md)
 
 [![CI](https://github.com/gerardrecinto/proofgate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gerardrecinto/proofgate/actions/workflows/ci.yml)
@@ -29,7 +31,7 @@ $ proofgate diff policy.json policy_v2.json
                  was default deny, now contractor_env
 ```
 
-Every invariant still passes in that example, so a test suite would be green. The diff is what shows the change.
+Every declared invariant still passes in that example. The diff is what shows the change.
 
 ## Three languages, each doing its job
 
@@ -77,7 +79,8 @@ Needs Rust, Go 1.22+ and Ruby 2.6+. The playground at the top of the [live demo]
 ## The gateway
 
 ```
-proofgate-gateway serve -prover core/target/release/proofgate -bundle policy.json \
+(umask 077; openssl rand -hex 32 > approval.key)
+proofgate-gateway serve -addr 127.0.0.1:8080 -prover core/target/release/proofgate -bundle examples/deploys/policy.json \
   -audit audit.jsonl -approval-key-file approval.key
 ```
 
@@ -87,7 +90,9 @@ proofgate-gateway serve -prover core/target/release/proofgate -bundle policy.jso
 | `PUT /v1/bundle` | propose a new policy. Refused with the evidence if an invariant fails, or if it widens access with no valid `X-Proofgate-Approval` |
 | `GET /v1/bundle`, `GET /healthz` | what is active, and liveness |
 
-An approval is `proofgate-gateway approve -key-file approval.key old.json new.json`. It signs the old digest, the new digest and the fingerprint of the changed requests, so it authorises that change and no other. Activations and rejections go to a hash-chained log you can check with `proofgate-gateway verify-audit`.
+An approval is `proofgate-gateway approve -key-file approval.key old.json new.json`. It signs the old digest, the new digest and the fingerprint of the changed requests, so it authorises that change and no other. Activations and invariant or approval refusals go to a hash-chained log you can check with `proofgate-gateway verify-audit`.
+
+The key-generation command needs OpenSSL. Keep the key out of version control. The bundle endpoint has no built-in caller authentication. Keep it on a trusted local interface or put it behind your authentication and network controls. See the [security policy](.github/SECURITY.md).
 
 ## How it is tested
 
@@ -100,4 +105,4 @@ An approval is `proofgate-gateway approve -key-file approval.key old.json new.js
 
 Dimensions are finite and enumerated, and the model is first-match with default deny. There are no ranges or regexes, so bucket them into values. A green result means the policy you wrote does what the invariants say over the dimensions you declared, nothing more. See [docs/DESIGN.md](docs/DESIGN.md) for the algorithm, the limits and the prior art.
 
-MIT licensed.
+MIT licensed. [Optional paid help](SUPPORT.md) is available for policy modeling and integration review.
