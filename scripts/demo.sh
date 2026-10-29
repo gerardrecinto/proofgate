@@ -2,7 +2,15 @@
 # Walk the whole flow: compile in Ruby, prove in Rust, gate in Go. Needs `make build` first.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
-work=$(mktemp -d); trap 'kill ${pid:-0} 2>/dev/null; rm -rf "$work"' EXIT
+work=$(mktemp -d)
+cleanup() {
+  if [ -n "${pid:-}" ]; then
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  fi
+  rm -rf "$work"
+}
+trap cleanup EXIT
 cp "$root"/examples/deploys/* "$work"/ && cd "$work"
 export PATH="$root/dsl/bin:$root/core/target/release:$root/bin:$PATH"
 echo demo-key > key
