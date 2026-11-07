@@ -8,6 +8,7 @@ You need Rust (stable), Go 1.22+, and Ruby 2.6+.
 make test        # Rust tests, Go tests with the race detector, Ruby tests
 make examples    # recompile examples/deploys/*.rb after editing one
 make site        # build the WebAssembly playground into _site
+ruby scripts/automation_test.rb  # action pins, checksum failures and demo cleanup
 ```
 
 ## Where things live
