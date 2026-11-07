@@ -1,0 +1,1 @@
+{"name":"proofgate-site-qa","private":true,"scripts":{"test":"node site-smoke.mjs"},"devDependencies":{"playwright":"1.63.0","axe-core":"4.10.2"}}

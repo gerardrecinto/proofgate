@@ -3,3 +3,4 @@ core/target/
 _site/
 *.gem
 .DS_Store
+qa/node_modules/

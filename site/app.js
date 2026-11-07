@@ -65,26 +65,38 @@ function render() {
   }
 }
 
+async function readPreset(name) {
+  const response = await fetch(`presets/${name}.json`);
+  if (!response.ok) throw new Error(`Could not load ${name}: HTTP ${response.status}`);
+  return response.text();
+}
+
+function showError(e) {
+  $("verdict").innerHTML = `<div class="verdict v-bad">Could not load the demo<small>${esc(e.message)}</small></div>`;
+}
+
 async function preset(name) {
-  const text = await (await fetch(`presets/${name}.json`)).text();
+  const text = await readPreset(name);
   $("new").value = text;
   document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === name)));
   render();
 }
 
 async function main() {
-  const { instance } = await WebAssembly.instantiateStreaming(fetch("proofgate.wasm"));
+  $("verdict").textContent = "Loading the Rust prover...";
+  const response = await fetch("proofgate.wasm");
+  if (!response.ok) throw new Error(`Could not load the prover: HTTP ${response.status}`);
+  const { instance } = await WebAssembly.instantiateStreaming(response);
   wasm = instance.exports;
-  $("old").value = await (await fetch("presets/policy.json")).text();
-  document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => preset(b.dataset.preset)));
+  $("old").value = await readPreset("policy");
+  document.querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => preset(b.dataset.preset).catch(showError)));
   $("old").addEventListener("input", render);
   $("new").addEventListener("input", () => {
     document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", "false"));
     render();
   });
   await preset("policy_v2");
+  document.querySelectorAll(".chip, textarea").forEach((el) => { el.disabled = false; });
 }
 
-main().catch((e) => {
-  $("verdict").innerHTML = `<div class="verdict v-bad">Could not start<small>${esc(e.message)}</small></div>`;
-});
+main().catch(showError);

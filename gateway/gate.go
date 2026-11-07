@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 )
 
@@ -21,6 +22,7 @@ type Gate struct {
 	ApprovalKey []byte
 	Audit       *AuditLog
 	active      atomic.Pointer[Bundle]
+	proposeMu   sync.Mutex
 }
 
 // Rejection says why a bundle was refused. Report carries the evidence.
@@ -36,6 +38,10 @@ func (g *Gate) Active() *Bundle { return g.active.Load() }
 // Propose proves the candidate, compares it with the active policy, and swaps it in only if
 // every invariant holds and any widening of access carries a valid approval.
 func (g *Gate) Propose(ctx context.Context, candidate []byte, approval string) (*Bundle, error) {
+	// Comparison, approval, audit and activation must observe one unchanged base.
+	// Readers still use the atomic pointer without waiting for proposal proofs.
+	g.proposeMu.Lock()
+	defer g.proposeMu.Unlock()
 	reject := func(b *Bundle, to string, reason string, report any, widened uint64) error {
 		from := ""
 		if b != nil {

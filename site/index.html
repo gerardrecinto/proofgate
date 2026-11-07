@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Proofgate</title>
+<title>Proofgate: review access-policy changes</title>
+<link rel="canonical" href="https://gerardrecinto.github.io/proofgate/">
+<meta property="og:title" content="Proofgate: review access-policy changes">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://gerardrecinto.github.io/proofgate/">
+<meta property="og:description" content="Compare finite access policies, inspect every changed decision, and check declared invariants before activation.">
 <meta name="description" content="Prove what a policy change does before it ships. Exact semantic diff and invariant proofs for access policies, in Ruby, Rust and Go.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Cpath d='M9 16.5l5 5 9-11' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -20,6 +25,11 @@
 }}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.skip{position:absolute;top:-80px;left:20px;background:var(--panel);padding:8px;z-index:2}
+.skip:focus{top:8px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
 a{color:var(--brand)}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
@@ -56,7 +66,7 @@ textarea{width:100%;height:260px;resize:vertical;font:12.5px/1.5 var(--mono);col
 .v-ok{background:var(--ok-bg);color:var(--ok)}.v-warn{background:var(--warn-bg);color:var(--warn)}.v-bad{background:var(--bad-bg);color:var(--bad)}.v-info{background:var(--info-bg);color:var(--info)}
 .results{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-top:12px}
 .box{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);min-width:0}
-.box h4{margin:0 0 10px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.box h3{margin:0 0 10px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .change{padding:10px 0;border-top:1px solid var(--line)}
 .change:first-of-type{border-top:0;padding-top:0}
 .dir{font:700 12px var(--mono);padding:2px 7px;border-radius:6px;margin-right:8px}
@@ -78,12 +88,14 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:14px;border-top:1px soli
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
   <nav><b>Proofgate</b><div><a href="#playground">Try it</a><a href="#how">How it works</a><a href="https://github.com/gerardrecinto/proofgate">GitHub</a></div></nav>
 
+  <main id="main" tabindex="-1">
   <header class="hero">
     <h1>Prove what a policy change does before it ships.</h1>
-    <p class="lede">A tidy-up PR regroups a few rules and quietly lets someone delete production. Reviewers read the diff and see nothing wrong, because the diff of the file is not the diff of the decisions. Proofgate computes the second one, exactly.</p>
+    <p class="lede">For engineers reviewing finite access-control policies. Compare which requests a change allows or denies, check the invariants you declared, and require approval when access widens.</p>
     <a class="btn primary" href="#playground">Try it in your browser</a>
     <a class="btn" href="https://github.com/gerardrecinto/proofgate">View source</a>
   </header>
@@ -101,20 +113,21 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:14px;border-top:1px soli
   <section id="playground">
     <h2>Try it</h2>
     <p class="sub">Pick a proposed change, or edit the JSON. Nothing leaves your browser.</p>
+    <noscript><p>The interactive demo needs JavaScript. The build commands below run the same Rust prover locally.</p></noscript>
     <div class="pg">
       <div class="pg-head"><span>Proposed change:</span>
-        <button class="chip" data-preset="policy_v2" aria-pressed="true">Tidy-up refactor</button>
-        <button class="chip" data-preset="policy_broken" aria-pressed="false">Breaks an invariant</button>
-        <button class="chip" data-preset="policy" aria-pressed="false">No change</button>
+        <button disabled class="chip" data-preset="policy_v2" aria-pressed="true">Tidy-up refactor</button>
+        <button disabled class="chip" data-preset="policy_broken" aria-pressed="false">Breaks an invariant</button>
+        <button disabled class="chip" data-preset="policy" aria-pressed="false">No change</button>
       </div>
       <div class="panes">
-        <div><label for="old">Active policy (compiled by <code>proofgate-rb</code>)</label><textarea id="old" spellcheck="false"></textarea></div>
-        <div><label for="new">Proposed policy</label><textarea id="new" spellcheck="false"></textarea></div>
+        <div><label for="old">Active policy (compiled by <code>proofgate-rb</code>)</label><textarea disabled id="old" spellcheck="false"></textarea></div>
+        <div><label for="new">Proposed policy</label><textarea disabled id="new" spellcheck="false"></textarea></div>
       </div>
-      <div id="verdict"></div>
+      <div id="verdict" role="status" aria-live="polite">The playground needs JavaScript. Use the build commands below to run the same prover locally.</div>
       <div class="results">
-        <div class="box"><h4>What changes</h4><div id="changes"></div></div>
-        <div class="box"><h4>Invariants on the proposed policy</h4><div id="invariants"></div></div>
+        <div class="box"><h3>What changes</h3><div id="changes"></div></div>
+        <div class="box"><h3>Invariants on the proposed policy</h3><div id="invariants"></div></div>
       </div>
     </div>
   </section>
@@ -124,17 +137,18 @@ footer{padding:36px 0 56px;color:var(--muted);font-size:14px;border-top:1px soli
     <div class="steps">
       <div class="step"><b>The candidate must prove every invariant.</b><span>If any <code>never</code> or <code>always</code> fails, the bundle is rejected and the old one keeps serving.</span></div>
       <div class="step"><b>Widening needs an approval for that exact change.</b><span>An HMAC over the old digest, the new digest and the fingerprint of every flipped request. Edit the policy afterwards and the token stops verifying.</span></div>
-      <div class="step"><b>Every decision is on a hash chain.</b><span>Activations and rejections are appended to a log where each entry commits to the one before it. Edit or remove a line and verification fails.</span></div>
+      <div class="step"><b>Activations and policy refusals are recorded.</b><span>Activations and invariant or approval refusals are appended to a hash-chained log. Per-request decisions and malformed inputs are not logged. Preserve the head hash separately to detect tail truncation.</span></div>
     </div>
   </section>
 
   <section>
     <h2>Run it yourself</h2>
-<pre>git clone https://github.com/gerardrecinto/proofgate &amp;&amp; cd proofgate
+<pre tabindex="0" aria-label="Build and compare policies">git clone https://github.com/gerardrecinto/proofgate &amp;&amp; cd proofgate
 make build
 core/target/release/proofgate diff examples/deploys/policy.json examples/deploys/policy_v2.json</pre>
   </section>
 
+  </main>
   <footer>MIT licensed. Built by <a href="https://github.com/gerardrecinto">Gerard Recinto</a>. A linter is not a proof of safety: Proofgate proves facts about the policy you wrote, over the dimensions you declared.</footer>
 </div>
 <script src="app.js" type="module"></script>
